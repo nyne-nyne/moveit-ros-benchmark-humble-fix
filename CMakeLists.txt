@@ -82,7 +82,15 @@ install(PROGRAMS scripts/moveit_benchmark_statistics.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY examples/
+install(DIRECTORY old_examples/
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}
 )
 
