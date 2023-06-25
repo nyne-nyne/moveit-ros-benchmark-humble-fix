@@ -17,7 +17,7 @@ parameters:
     queries: above
     start_states: rbkairos_state_0000_above
 planning_pipelines:
-    pipelines: [pipeline1]
+    pipelines: [pipeline1, pipeline2]
     pipeline1:
         name: ompl
         planners:
@@ -46,6 +46,7 @@ planning_pipelines:
             # - SPARSkConfigDefault
             # - SPARStwokConfigDefault
             # - TrajOptDefault
-        # name: chomp
-        # planners:
-        #     - CHOMP
+    pipeline2:
+        name: chomp
+        planners:
+            - CHOMP
