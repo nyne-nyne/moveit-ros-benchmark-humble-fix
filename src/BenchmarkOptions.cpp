@@ -285,7 +285,8 @@ void BenchmarkOptions::readPlannerConfigs(const rclcpp::Node::SharedPtr& node)
     RCLCPP_INFO(LOGGER, "Reading in planner names for planning pipeline '%s'", pipeline_name.c_str());
 
     std::vector<std::string> planners;
-    if (!node->get_parameter(pipeline_parameter_name, planners))
+    const std::string planners_parameter_name = std::string(np).append(".").append(pipeline).append(".planners"); // changed
+    if (!node->get_parameter(planners_parameter_name, planners))  // changed
     {
       RCLCPP_ERROR(LOGGER, "Fail to get the parameter in `%s` namespace.", pipeline_parameter_name.c_str());
       return;
