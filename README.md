@@ -37,7 +37,7 @@ While following the tutorial [here](https://moveit.picknik.ai/humble/doc/example
 
 I have addressed the above-mentioned issues to the best of my ability.
 
-Please note that I haven't yet resolved the last issue, as it requires additional time and effort. Additionally, the Boost progress bar is currently not functioning, but it does not affect the core functionality.
+The Boost progress bar is currently not functioning, but it does not affect the core functionality.
 
 ## Usage
 
