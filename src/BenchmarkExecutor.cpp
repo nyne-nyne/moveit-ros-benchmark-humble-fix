@@ -126,9 +126,8 @@ void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipe
     // Initialize planning pipelines from configured child namespaces
     static rclcpp::Node::SharedPtr child_node = rclcpp::Node::make_shared(planning_pipeline_name, parent_node_name, node_options);
     planning_pipeline::PlanningPipelinePtr pipeline(new planning_pipeline::PlanningPipeline(
-        planning_scene_->getRobotModel(), child_node, planning_pipeline_name, "planning_plugin", "request_adapters")); // changed child_node to node_ and added "" as the third argument
-        // from https://moveit.picknik.ai/main/doc/examples/motion_planning_pipeline/motion_planning_pipeline_tutorial.html
-          // planning_pipeline::PlanningPipelinePtr planning_pipeline(new planning_pipeline::PlanningPipeline(robot_model, node, "", "planning_plugin", "request_adapters"));
+        planning_scene_->getRobotModel(), child_node, planning_pipeline_name, "planning_plugin", "request_adapters")); // planning_pipeline_name="ompl" or "chomp" etc.
+
     // Verify the pipeline has successfully initialized a planner
     if (!pipeline->getPlannerManager())
     {
@@ -141,11 +140,12 @@ void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipe
     pipeline->checkSolutionPaths(false);
     planning_pipelines_[planning_pipeline_name] = pipeline;
 
-    std::vector<std::string> planner_ids; // debugging
+    // Debugging: Return all Planner Configurations. If only the planning groups are returned then there are no planner configurations found.
+    std::vector<std::string> planner_ids;
     pipeline->getPlannerManager()->getPlanningAlgorithms(planner_ids);
     for (std::string planner_id : planner_ids)
     {
-      std::cout << "planner_id:" << planner_id << std::endl;
+      std::cout << "planner_id: " << planner_id << std::endl;
     }
   }
 
@@ -804,17 +804,9 @@ void BenchmarkExecutor::runBenchmark(moveit_msgs::msg::MotionPlanRequest request
     // Use the planning context if the pipeline only contains the planner plugin
     bool use_planning_context = planning_pipeline->getAdapterPluginNames().empty();
 
-    std::vector<std::string> planner_ids; // debugging
-    planning_pipeline->getPlannerManager()->getPlanningAlgorithms(planner_ids);
-    for (std::string planner_id : planner_ids)
-    {
-      std::cout << "planner_id:" << planner_id << std::endl;
-    }
-
     // Iterate through all planners configured for the pipeline
     for (const std::string& planner_id : pipeline_entry.second)
     {
-      std::cout << "test:" << planner_id << std::endl;  // debugging
       // This container stores all of the benchmark data for this planner
       PlannerBenchmarkData planner_data(runs);
       // This vector stores all motion plan results for further evaluation
@@ -843,7 +835,6 @@ void BenchmarkExecutor::runBenchmark(moveit_msgs::msg::MotionPlanRequest request
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         if (use_planning_context)
         {
-          std::cout << "Planner: " << planning_pipeline->getPlannerPluginName() << std::endl; //debugging
           solved[j] = planning_context->solve(responses[j]);
         }
         else
