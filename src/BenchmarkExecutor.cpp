@@ -114,7 +114,7 @@ BenchmarkExecutor::~BenchmarkExecutor()
   delete psm_;
 }
 
-void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipeline_names)
+void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipeline_names, rclcpp::NodeOptions node_options)
 {
   planning_pipelines_.clear();
 
@@ -122,11 +122,13 @@ void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipe
   std::string parent_node_name = node_->get_name();
   for (const std::string& planning_pipeline_name : planning_pipeline_names)
   {
+    std::cout << "planning_pipeline_name: " << planning_pipeline_name << std::endl;
     // Initialize planning pipelines from configured child namespaces
-    static rclcpp::Node::SharedPtr child_node = rclcpp::Node::make_shared(planning_pipeline_name, parent_node_name);
+    static rclcpp::Node::SharedPtr child_node = rclcpp::Node::make_shared(planning_pipeline_name, parent_node_name, node_options);
     planning_pipeline::PlanningPipelinePtr pipeline(new planning_pipeline::PlanningPipeline(
-        planning_scene_->getRobotModel(), child_node, "planning_plugin", "request_adapters"));
-
+        planning_scene_->getRobotModel(), child_node, planning_pipeline_name, "planning_plugin", "request_adapters")); // changed child_node to node_ and added "" as the third argument
+        // from https://moveit.picknik.ai/main/doc/examples/motion_planning_pipeline/motion_planning_pipeline_tutorial.html
+          // planning_pipeline::PlanningPipelinePtr planning_pipeline(new planning_pipeline::PlanningPipeline(robot_model, node, "", "planning_plugin", "request_adapters"));
     // Verify the pipeline has successfully initialized a planner
     if (!pipeline->getPlannerManager())
     {
@@ -138,6 +140,13 @@ void BenchmarkExecutor::initialize(const std::vector<std::string>& planning_pipe
     pipeline->displayComputedMotionPlans(false);
     pipeline->checkSolutionPaths(false);
     planning_pipelines_[planning_pipeline_name] = pipeline;
+
+    std::vector<std::string> planner_ids; // debugging
+    pipeline->getPlannerManager()->getPlanningAlgorithms(planner_ids);
+    for (std::string planner_id : planner_ids)
+    {
+      std::cout << "planner_id:" << planner_id << std::endl;
+    }
   }
 
   // Error check
@@ -553,6 +562,8 @@ bool BenchmarkExecutor::plannerConfigurationsExist(
   {
     planning_interface::PlannerManagerPtr pm = planning_pipelines_[entry.first]->getPlannerManager();
     const planning_interface::PlannerConfigurationMap& config_map = pm->getPlannerConfigurations();
+    
+    
 
     // if the planner is chomp or stomp skip this function and return true for checking planner configurations for the
     // planning group otherwise an error occurs, because for OMPL a specific planning algorithm needs to be defined for
@@ -792,9 +803,18 @@ void BenchmarkExecutor::runBenchmark(moveit_msgs::msg::MotionPlanRequest request
     planning_pipeline::PlanningPipelinePtr planning_pipeline = planning_pipelines_[pipeline_entry.first];
     // Use the planning context if the pipeline only contains the planner plugin
     bool use_planning_context = planning_pipeline->getAdapterPluginNames().empty();
+
+    std::vector<std::string> planner_ids; // debugging
+    planning_pipeline->getPlannerManager()->getPlanningAlgorithms(planner_ids);
+    for (std::string planner_id : planner_ids)
+    {
+      std::cout << "planner_id:" << planner_id << std::endl;
+    }
+
     // Iterate through all planners configured for the pipeline
     for (const std::string& planner_id : pipeline_entry.second)
     {
+      std::cout << "test:" << planner_id << std::endl;  // debugging
       // This container stores all of the benchmark data for this planner
       PlannerBenchmarkData planner_data(runs);
       // This vector stores all motion plan results for further evaluation
@@ -808,8 +828,9 @@ void BenchmarkExecutor::runBenchmark(moveit_msgs::msg::MotionPlanRequest request
         planner_start_fn(request, planner_data);
 
       planning_interface::PlanningContextPtr planning_context;
-      if (use_planning_context)
-        planning_context = planning_pipeline->getPlannerManager()->getPlanningContext(planning_scene_, request);
+      if (use_planning_context) {
+        planning_context = planning_pipeline->getPlannerManager()->getPlanningContext(planning_scene_, request);  // sets planner
+      }
 
       // Iterate runs
       for (int j = 0; j < runs; ++j)
@@ -822,6 +843,7 @@ void BenchmarkExecutor::runBenchmark(moveit_msgs::msg::MotionPlanRequest request
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         if (use_planning_context)
         {
+          std::cout << "Planner: " << planning_pipeline->getPlannerPluginName() << std::endl; //debugging
           solved[j] = planning_context->solve(responses[j]);
         }
         else

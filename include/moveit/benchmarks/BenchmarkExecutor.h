@@ -98,7 +98,7 @@ public:
 
   // Initialize the benchmark executor by loading planning pipelines from the
   // given set of classes
-  void initialize(const std::vector<std::string>& plugin_classes);
+  void initialize(const std::vector<std::string>& plugin_classes, rclcpp::NodeOptions node_options);
 
   void addPreRunEvent(const PreRunEventFunction& func);
   void addPostRunEvent(const PostRunEventFunction& func);

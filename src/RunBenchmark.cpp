@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 
   std::vector<std::string> planning_pipelines;
   opts.getPlanningPipelineNames(planning_pipelines);
-  server.initialize(planning_pipelines);
+  server.initialize(planning_pipelines, node_options);
 
   // Running benchmarks
   if (!server.runBenchmarks(opts))

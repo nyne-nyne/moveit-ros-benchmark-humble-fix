@@ -21,9 +21,9 @@ planning_pipelines:
     pipeline1:
         name: ompl
         planners:
-            - LazyPRMstarkConfigDefault
             - TRRTkConfigDefault
             - RRTConnectkConfigDefault
+            # - LazyPRMstarkConfigDefault
             # - APSConfigDefault
             # - SBLkConfigDefault
             # - ESTkConfigDefault
