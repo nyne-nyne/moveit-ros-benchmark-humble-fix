@@ -5,13 +5,13 @@
 # Three different planners from OMPL are run a total of 50 times each, with a
 # maximum of 10 seconds per run.  Output is stored in the /tmp/moveit_benchmarks directory.
 warehouse:
-    host: localhost
-    port: 33829
-    scene_name: PickUp     # Required
+    host: /tmp/demo1_db.sqlite
+    post: 33838
+    scene_name: PickUp
 parameters:
     name: PickingUpItem
     runs: 50
-    group: arm       # Required
+    group: panda_arm
     timeout: 10.0
     output_directory: /tmp/moveit_benchmarks/
     queries: .*

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
-project(moveit_ros_benchmarks)
+project(moveit_ros_benchmarks_fix)
 
-set(MOVEIT_LIB_NAME moveit_ros_benchmarks)
+set(MOVEIT_LIB_NAME moveit_ros_benchmarks_fix)
 
 # Common cmake code applied to all moveit packages
 find_package(moveit_common REQUIRED)
