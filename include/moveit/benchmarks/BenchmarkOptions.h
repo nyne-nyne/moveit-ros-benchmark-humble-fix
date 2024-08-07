@@ -63,7 +63,8 @@ public:
   int getPort() const;
   /** \brief Get the reference name of the planning scene stored inside the warehouse database */
   const std::string& getSceneName() const;
-
+  void setSceneName(const std::string&);
+  
   /** \brief Get the specified number of benchmark query runs */
   int getNumRuns() const;
   /** \brief Get the maximum timeout per planning attempt */

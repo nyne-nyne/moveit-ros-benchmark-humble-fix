@@ -63,10 +63,55 @@ int main(int argc, char** argv)
   std::vector<std::string> planning_pipelines;
   opts.getPlanningPipelineNames(planning_pipelines);
   server.initialize(planning_pipelines, node_options);
+  
+  if (opts.getSceneName().empty())
+  {
+    std::vector<std::string> scene_names;
+    try
+    {
+      warehouse_ros::DatabaseLoader db_loader(node);
+      warehouse_ros::DatabaseConnection::Ptr warehouse_connection = db_loader.loadDatabase();
+      warehouse_connection->setParams(opts.getHostName(), opts.getPort(), 20);
+      if (warehouse_connection->connect())
+      {
+        auto planning_scene_storage = moveit_warehouse::PlanningSceneStorage(warehouse_connection);
+        planning_scene_storage.getPlanningSceneNames(scene_names);
+        RCLCPP_INFO(LOGGER, "Loaded scene names");
+      }
+      else
+      {
+        RCLCPP_ERROR(LOGGER, "Failed to load scene names from DB");
+        rclcpp::shutdown();
+        return 1;
+      }
+    }
+    catch (std::exception& e)
+    {
+      RCLCPP_ERROR(LOGGER, "Failed to load scene names from DB: '%s'", e.what());
+      rclcpp::shutdown();
+      return 1;
+    }
+    // Running benchmarks
+    for (auto const& name : scene_names)
+    {
+      opts.setSceneName(name);
+      if (!server.runBenchmarks(opts))
+      {
+        RCLCPP_ERROR(LOGGER, "Failed to run all benchmarks");
+      }
+    }
+  }
+  else
+  {
+    if (!server.runBenchmarks(opts))
+    {
+      RCLCPP_ERROR(LOGGER, "Failed to run all benchmarks");
+    }
+  }
 
-  // Running benchmarks
-  if (!server.runBenchmarks(opts))
-    RCLCPP_ERROR(LOGGER, "Failed to run all benchmarks");
-
+  RCLCPP_INFO(LOGGER, "Finished benchmarking");
   rclcpp::spin(node);
+  rclcpp::shutdown();
+
+  return 0;
 }

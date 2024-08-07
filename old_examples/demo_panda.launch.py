@@ -17,11 +17,23 @@ def generate_launch_description():
 
     moveit_configs = MoveItConfigsBuilder("moveit_resources_panda").to_dict()
 
+    sqlite_database = (
+        get_package_share_directory("moveit_benchmark_resources")
+        + "/databases/panda_test_db.sqlite"
+    )
+
     warehouse_ros_config = {
         # For warehouse_ros_sqlite
         "warehouse_plugin": "warehouse_ros_sqlite::DatabaseConnection",
-        "warehouse_host": "/tmp/demo1_db.sqlite",
-        "warehouse_port": 33828,
+        "benchmark_config": {
+            "warehouse": {
+                "warehouse_plugin": "warehouse_ros_sqlite::DatabaseConnection",
+                "host": sqlite_database,
+                "port": 33828,
+                "scene_name": "",
+            },
+        },
+
     }
     
     # moveit_ros_benchmark demo executable

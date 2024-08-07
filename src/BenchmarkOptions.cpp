@@ -85,6 +85,11 @@ const std::string& BenchmarkOptions::getSceneName() const
   return scene_name_;
 }
 
+void BenchmarkOptions::setSceneName(const std::string& name)
+{
+  scene_name_ = name;
+}
+
 int BenchmarkOptions::getNumRuns() const
 {
   return runs_;

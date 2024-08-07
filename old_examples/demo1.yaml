@@ -4,21 +4,21 @@
 
 # Three different planners from OMPL are run a total of 50 times each, with a
 # maximum of 10 seconds per run.  Output is stored in the /tmp/moveit_benchmarks directory.
-warehouse:
-    host: /tmp/demo1_db.sqlite
-    post: 33838
-    scene_name: PickUp
+#warehouse:
+#    host: /tmp/demo1_db.sqlite
+#    post: 33838
+#    scene_name: '' # Specify empty for loading all the scences!
 parameters:
-    name: PickingUpItem
-    runs: 50
+    name: PandaTestDB
+    runs: 3
     group: panda_arm
     timeout: 10.0
     output_directory: /tmp/moveit_benchmarks/
     queries: .*
     start_states: .*
 planning_pipelines:
-    pipelines: [pipeline1]
-    pipeline1:
+    pipelines: [OMPL]
+    OMPL:
         name: ompl
         planners:
             - RRTConnectkConfigDefault
