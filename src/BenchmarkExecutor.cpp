@@ -925,20 +925,21 @@ void BenchmarkExecutor::collectMetrics(PlannerRunData& metrics,
         return s.has_value() ? s.value() : 0.0;
       }();
 
-      metrics["path_" + mp_res.description_[j] + "_correct BOOLEAN"] = correct ? "true" : "false";
-      metrics["path_" + mp_res.description_[j] + "_length REAL"] = moveit::core::toString(traj_len);
-      metrics["path_" + mp_res.description_[j] + "_clearance REAL"] = moveit::core::toString(clearance);
-      metrics["path_" + mp_res.description_[j] + "_smoothness REAL"] = moveit::core::toString(smoothness);
-      metrics["path_" + mp_res.description_[j] + "_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
+      metrics["path_correct BOOLEAN"] = correct ? "true" : "false";
+      metrics["path_length REAL"] = moveit::core::toString(traj_len);
+      metrics["path_clearance REAL"] = moveit::core::toString(clearance);
+      metrics["path_smoothness REAL"] = moveit::core::toString(smoothness);
+      metrics["path_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
+      metrics["path_waypoints INTEGER"] = std::to_string(p.getWayPointCount());
 
-      if (j == mp_res.trajectory_.size() - 1)
-      {
-        metrics["final_path_correct BOOLEAN"] = correct ? "true" : "false";
-        metrics["final_path_length REAL"] = moveit::core::toString(traj_len);
-        metrics["final_path_clearance REAL"] = moveit::core::toString(clearance);
-        metrics["final_path_smoothness REAL"] = moveit::core::toString(smoothness);
-        metrics["final_path_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
-      }
+      // if (j == mp_res.trajectory_.size() - 1)
+      // {
+      //   metrics["final_path_correct BOOLEAN"] = correct ? "true" : "false";
+      //   metrics["final_path_length REAL"] = moveit::core::toString(traj_len);
+      //   metrics["final_path_clearance REAL"] = moveit::core::toString(clearance);
+      //   metrics["final_path_smoothness REAL"] = moveit::core::toString(smoothness);
+      //   metrics["final_path_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
+      // }
       process_time -= mp_res.processing_time_[j];
     }
     if (process_time <= 0.0)

@@ -458,12 +458,12 @@ def plotAttribute(cur, planners, attribute, typename):
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), prop=props)
     elif typename == "BOOLEAN":
         width = 0.5
-        measurementsPercentage = [sum(m) * 100.0 / len(m) for m in measurements]
+        measurementsPercentage = [sum(i == 'true' for i in m) * 100.0 / len(m) for m in measurements]
         ind = range(len(measurements))
         plt.bar(ind, measurementsPercentage, width)
         ### uncommenting this line will remove the term 'kConfigDefault' from the labels for OMPL Solvers.
         ### Fits situations where you need more control in the plot, such as in an academic publication for example
-        # labels = [l.replace('kConfigDefault', '') for l in labels]
+        labels = [l.replace('(ompl)', '') for l in labels]
 
         xtickNames = plt.xticks(
             [x + width / 2.0 for x in ind], labels, rotation=30, fontsize=8, ha="right"
@@ -486,7 +486,7 @@ def plotAttribute(cur, planners, attribute, typename):
 
         ### uncommenting this line will remove the term 'kConfigDefault' from the labels for OMPL Solvers.
         ### Fits situations where you need more control in the plot, such as in an academic publication for example
-        # labels = [l.replace('kConfigDefault', '') for l in labels]
+        labels = [l.replace('(ompl)', '') for l in labels]
 
         xtickNames = plt.setp(ax, xticklabels=labels)
         plt.setp(xtickNames, rotation=30, fontsize=8, ha="right")
