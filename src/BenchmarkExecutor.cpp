@@ -891,11 +891,16 @@ void BenchmarkExecutor::collectMetrics(PlannerRunData& metrics,
     double traj_len = 0.0;   // trajectory length
     double clearance = 0.0;  // trajectory clearance (average)
     bool correct = true;     // entire trajectory collision free and in bounds
-
+    bool collided = false;
+    bool invalid_joint_state = false;
+    
     double process_time = total_time;
     for (std::size_t j = 0; j < mp_res.trajectory_.size(); ++j)
     {
       correct = true;
+      collided = false;
+      invalid_joint_state = false;
+
       traj_len = 0.0;
       clearance = 0.0;
       const robot_trajectory::RobotTrajectory& p = *mp_res.trajectory_[j];
@@ -909,15 +914,16 @@ void BenchmarkExecutor::collectMetrics(PlannerRunData& metrics,
       {
         collision_detection::CollisionResult res;
         planning_scene_->checkCollisionUnpadded(req, res, p.getWayPoint(k));
-        if (res.collision)
-          correct = false;
+        if (res.collision) 
+          collided = true;
         if (!p.getWayPoint(k).satisfiesBounds())
-          correct = false;
+          invalid_joint_state = true;
         double d = planning_scene_->distanceToCollisionUnpadded(p.getWayPoint(k));
         if (d > 0.0)  // in case of collision, distance is negative
           clearance += d;
       }
       clearance /= (double)p.getWayPointCount();
+      if (collided || invalid_joint_state) correct = false;
 
       // compute smoothness
       const auto smoothness = [&]() {
@@ -930,6 +936,8 @@ void BenchmarkExecutor::collectMetrics(PlannerRunData& metrics,
       // clearance in in metres
       // planning_time is in seconds
       metrics["path_correct BOOLEAN"] = correct ? "true" : "false";
+      metrics["path_causes_collision BOOLEAN"] = collided ? "true" : "false";
+      metrics["path_has_invalid_state BOOLEAN"] = invalid_joint_state ? "true" : "false";
       metrics["path_length REAL"] = moveit::core::toString(traj_len);
       metrics["path_clearance REAL"] = moveit::core::toString(clearance);
       metrics["path_smoothness REAL"] = moveit::core::toString(smoothness);

@@ -777,6 +777,8 @@ if __name__ == "__main__":
         parser.error("No arguments were provided. Please provide full path of log file")
 
     if len(args) > 0:
+        if options.plot:
+            options.dbname = options.plot.split('.')[0] + ".db" # Hacky, works for now.
         readBenchmarkLog(options.dbname, args)
         # If we update the database, we recompute the views as well
         options.view = True
