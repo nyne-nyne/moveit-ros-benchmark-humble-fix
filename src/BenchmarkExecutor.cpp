@@ -925,11 +925,15 @@ void BenchmarkExecutor::collectMetrics(PlannerRunData& metrics,
         return s.has_value() ? s.value() : 0.0;
       }();
 
+      // Units:
+      // length is in radians
+      // clearance in in metres
+      // planning_time is in seconds
       metrics["path_correct BOOLEAN"] = correct ? "true" : "false";
       metrics["path_length REAL"] = moveit::core::toString(traj_len);
       metrics["path_clearance REAL"] = moveit::core::toString(clearance);
       metrics["path_smoothness REAL"] = moveit::core::toString(smoothness);
-      metrics["path_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
+      metrics["path_planning_time REAL"] = moveit::core::toString(mp_res.processing_time_[j]);
       metrics["path_waypoints INTEGER"] = std::to_string(p.getWayPointCount());
 
       // if (j == mp_res.trajectory_.size() - 1)

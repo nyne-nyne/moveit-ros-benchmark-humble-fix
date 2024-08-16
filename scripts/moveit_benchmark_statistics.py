@@ -448,7 +448,7 @@ def plotAttribute(cur, planners, attribute, typename):
             )
             heights = heights + measurements[i]
         xtickNames = plt.xticks(
-            [x + width / 2.0 for x in ind], labels, rotation=30, fontsize=8, ha="right"
+            [x + width / 2.0 for x in ind], labels, rotation=90, fontsize=8, ha="center"
         )
         ax.set_ylabel(attribute.replace("_", " ") + " (%)")
         box = ax.get_position()
@@ -458,17 +458,18 @@ def plotAttribute(cur, planners, attribute, typename):
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), prop=props)
     elif typename == "BOOLEAN":
         width = 0.5
-        measurementsPercentage = [sum(i == 'true' for i in m) * 100.0 / len(m) for m in measurements]
+        measurementsPercentage = [sum(i == 'true' for i in m) * 100.0 / len(m) for m in measurements] # TODO: What's the bug?????
         ind = range(len(measurements))
+        plt.ylim(0, 100) # all values are between 0 and 100%, now.
         plt.bar(ind, measurementsPercentage, width)
         ### uncommenting this line will remove the term 'kConfigDefault' from the labels for OMPL Solvers.
         ### Fits situations where you need more control in the plot, such as in an academic publication for example
         labels = [l.replace('(ompl)', '') for l in labels]
 
         xtickNames = plt.xticks(
-            [x + width / 2.0 for x in ind], labels, rotation=30, fontsize=8, ha="right"
+            [x + width / 2.0 for x in ind], labels, rotation=90, fontsize=8, ha="center"
         )
-        ax.set_ylabel(attribute.replace("_", " ") + " (%)")
+        ax.set_ylabel(attribute.replace("_", " ").title() + " (%)")
         plt.subplots_adjust(
             bottom=0.3
         )  # Squish the plot into the upper 2/3 of the page.  Leave room for labels
@@ -479,7 +480,7 @@ def plotAttribute(cur, planners, attribute, typename):
             plt.boxplot(
                 measurements, notch=0, sym="k+", vert=1, whis=1.5, bootstrap=1000
             )
-        ax.set_ylabel(attribute.replace("_", " "))
+        ax.set_ylabel(attribute.replace("_", " ").title())
 
         # xtickNames = plt.xticks(labels, rotation=30, fontsize=10)
         # plt.subplots_adjust(bottom=0.3) # Squish the plot into the upper 2/3 of the page.  Leave room for labels
@@ -489,7 +490,7 @@ def plotAttribute(cur, planners, attribute, typename):
         labels = [l.replace('(ompl)', '') for l in labels]
 
         xtickNames = plt.setp(ax, xticklabels=labels)
-        plt.setp(xtickNames, rotation=30, fontsize=8, ha="right")
+        plt.setp(xtickNames, rotation=90, fontsize=8, ha="center")
         for (
             tick
         ) in ax.xaxis.get_major_ticks():  # shrink the font size of the x tick labels
@@ -497,7 +498,8 @@ def plotAttribute(cur, planners, attribute, typename):
         plt.subplots_adjust(
             bottom=0.3
         )  # Squish the plot into the upper 2/3 of the page.  Leave room for labels
-    ax.set_xlabel("Motion planning algorithm", fontsize=12)
+    ax.set_xlabel("Motion planning algorithm", fontsize=10)
+    ax.tick_params(axis='y', labelsize=8)
     ax.yaxis.grid(True, linestyle="-", which="major", color="lightgrey", alpha=0.5)
     if max(nanCounts) > 0:
         maxy = max([max(y) for y in measurements])
