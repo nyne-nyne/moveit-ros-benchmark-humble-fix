@@ -95,6 +95,11 @@ int BenchmarkOptions::getNumRuns() const
   return runs_;
 }
 
+int BenchmarkOptions::getPlanningAttempts() const
+{
+  return planning_attmepts_;
+}
+
 double BenchmarkOptions::getTimeout() const
 {
   return timeout_;
@@ -195,6 +200,7 @@ void BenchmarkOptions::readBenchmarkParameters(const rclcpp::Node::SharedPtr& no
 {
   node->get_parameter_or(std::string("benchmark_config.parameters.name"), benchmark_name_, std::string(""));
   node->get_parameter_or(std::string("benchmark_config.parameters.runs"), runs_, 10);
+  node->get_parameter_or(std::string("benchmark_config.parameters.attempts"), planning_attmepts_, 1);
   node->get_parameter_or(std::string("benchmark_config.parameters.timeout"), timeout_, 10.0);
   node->get_parameter_or(std::string("benchmark_config.parameters.output_directory"), output_directory_,
                          std::string(""));
@@ -225,7 +231,7 @@ void BenchmarkOptions::readBenchmarkParameters(const rclcpp::Node::SharedPtr& no
   node->get_parameter_or(std::string("benchmark_config.parameters.goal_offset.yaw"), goal_offsets[5], 0.0);
 
   RCLCPP_INFO(LOGGER, "Benchmark name: '%s'", benchmark_name_.c_str());
-  RCLCPP_INFO(LOGGER, "Benchmark #runs: %d", runs_);
+  RCLCPP_INFO(LOGGER, "Benchmark runs: %d", runs_);
   RCLCPP_INFO(LOGGER, "Benchmark timeout: %f secs", timeout_);
   RCLCPP_INFO(LOGGER, "Benchmark group: %s", group_name_.c_str());
   RCLCPP_INFO(LOGGER, "Benchmark query regex: '%s'", query_regex_.c_str());

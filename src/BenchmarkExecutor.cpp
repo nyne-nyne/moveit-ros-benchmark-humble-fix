@@ -354,7 +354,7 @@ bool BenchmarkExecutor::initializeBenchmarks(const BenchmarkOptions& opts, movei
     brequest.request.goal_constraints = goal_constraint.constraints;
     brequest.request.group_name = opts.getGroupName();
     brequest.request.allowed_planning_time = opts.getTimeout();
-    brequest.request.num_planning_attempts = 1;
+    brequest.request.num_planning_attempts = opts.getPlanningAttempts();
 
     if (brequest.request.goal_constraints.size() == 1 &&
         brequest.request.goal_constraints[0].position_constraints.size() == 1 &&
@@ -378,7 +378,7 @@ bool BenchmarkExecutor::initializeBenchmarks(const BenchmarkOptions& opts, movei
     brequest.request = query.request;
     brequest.request.group_name = opts.getGroupName();
     brequest.request.allowed_planning_time = opts.getTimeout();
-    brequest.request.num_planning_attempts = 1;
+    brequest.request.num_planning_attempts = opts.getPlanningAttempts();
 
     // Make sure that workspace_parameters are set
     if (brequest.request.workspace_parameters.min_corner.x == brequest.request.workspace_parameters.max_corner.x &&
@@ -407,7 +407,7 @@ bool BenchmarkExecutor::initializeBenchmarks(const BenchmarkOptions& opts, movei
     brequest.request.trajectory_constraints = traj_constraint.constraints;
     brequest.request.group_name = opts.getGroupName();
     brequest.request.allowed_planning_time = opts.getTimeout();
-    brequest.request.num_planning_attempts = 1;
+    brequest.request.num_planning_attempts = opts.getPlanningAttempts();
 
     if (brequest.request.trajectory_constraints.constraints.size() == 1 &&
         brequest.request.trajectory_constraints.constraints[0].position_constraints.size() == 1 &&

@@ -67,6 +67,8 @@ public:
   
   /** \brief Get the specified number of benchmark query runs */
   int getNumRuns() const;
+  /** \brief Get the specified number of planning attempts */
+  int getPlanningAttempts() const;
   /** \brief Get the maximum timeout per planning attempt */
   double getTimeout() const;
   /** \brief Get the reference name of the benchmark */
@@ -118,6 +120,7 @@ protected:
 
   /// benchmark parameters
   int runs_;
+  int planning_attmepts_;
   double timeout_;
   std::string benchmark_name_;
   std::string group_name_;
