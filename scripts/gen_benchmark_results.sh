@@ -18,7 +18,10 @@ mkdir -p $result_dir
 find $benchmark_dir -type f -print0 | while IFS= read -r -d $'\0' file;
 do
     filename=$(grep "scene_name" "$file" | awk '{print $2}')_$(grep "Experiment" "$file" | awk '{print $2}')
-    echo "Saving result of experiment to $result_dir/$filename.pdf"
+    echo "Saving result of experiment to $result_dir/$filename.pdf..."
     
     ros2 run moveit_ros_benchmarks_fix moveit_benchmark_statistics.py --plot="$result_dir/$filename.pdf" $file
 done
+
+echo "Saving aggregate results from all experiments in $benchmark_dir to $result_dir/aggregate.pdf..."
+ros2 run moveit_ros_benchmarks_fix moveit_benchmark_statistics.py --plot="$result_dir/aggregate.pdf" $benchmark_dir/*
