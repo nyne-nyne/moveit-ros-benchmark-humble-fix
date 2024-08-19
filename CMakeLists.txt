@@ -78,7 +78,9 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
-install(PROGRAMS scripts/moveit_benchmark_statistics.py
+install(PROGRAMS
+  scripts/moveit_benchmark_statistics.py
+  scripts/gen_benchmark_results.sh
   DESTINATION lib/${PROJECT_NAME}
 )
 
