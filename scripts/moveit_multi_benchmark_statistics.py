@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-#TODO: temp testing, remove later, or add as an option
 import IPython
-# TODO: Save the results of each benchmark into a PDF file, instead of just displaying them
 import argparse
 import sys
 import io
@@ -35,20 +33,26 @@ if __name__ == "__main__":
     metrics = dict()
     benchmarks = dict()
     runs = -1
-
+    file_name = "" # experiment_name + scene_name + extension (.pdf)
+    
     # TODO: parse the file for experiment name as well as scene name; for the file to save to
     for result_file in args.experiments:
         bm_name = ""
         with open(result_file, "r") as f:
+            print("Processing result " + str(result_file), end='', file=sys.stderr)
             planner_results = dict()
 
-            print("Processing result " + str(result_file), end='', file=sys.stderr)
-            skip_lines(8, f)
+            skip_line(f)
+            exp_name = f.readline().split()[-1]
+            skip_lines(6, f)
 
             attempts = f.readline().split()[-1]
             planning_time = f.readline().split()[-1]
             bm_name = f"{planning_time}s{attempts}a" # TODO: Add the robot name as well? If you've got multiple robots, raise your hand!
-            skip_lines(7, f)
+            skip_line(f)
+            scene_name = f.readline().split()[-1]
+            file_name = f"{exp_name}_{scene_name}"
+            skip_lines(5, f)
 
             runs = max(int(f.readline().split()[0]), runs)
             skip_lines(2, f)
@@ -103,60 +107,65 @@ if __name__ == "__main__":
                                     "benchmark": list(benchmarks.keys())})
 
     # It's plotting time.
+    colours = ["red", "blue", "green", "cyan", "teal", "orange"] # TODO: Autogenerate these? Colour names? Or hex-values? With a nice palette, not some random colours?
+
     for metric, data_type in metrics.items():
         if data_type == "BOOLEAN": # bar-graph
             fig, ax = plt.subplots()
             x = np.arange(len(collected.planner))
             m = (1.0 - len(collected.benchmark))/2.0
-            width = 0.4
-            ax.set_xticks(x, collected.planner.to_numpy(), rotation=90)
-
-            for benchmark in collected.values():
-                offset = width * m
+            width = 1.0/(len(collected.benchmark) + 0.25)
+            no_of_planners = len(collected.planner.to_numpy())
+            
+            for colour_i, benchmark in enumerate(collected.values()):
                 results = []
-                for i, planner in enumerate(collected.planner): # multiple groupby selection is not available yet :(
+                offset = width * m
+                cfailed_planners = [False]*no_of_planners # This is for indicated that a planner failed; for disambiguation from data that's just 0
+
+                for i, planner in enumerate(collected.planner): # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
                     result = benchmark.sel(planner=planner, metric=metric).mean(dim='run') * 100
                     if result.isnull():
-                        plt.setp(ax.get_xticklabels()[i], color='red') # This indicates that the one or more benchmark failed; the one that didn't will have a plot...
+                        cfailed_planners[i] = True
+                        result = 0
                     results.append(result)
 
-                ax.bar(x + offset, results, width, label=benchmark.name)
+                bar = ax.bar(x + offset, results, width, color=colours[colour_i], label=benchmark.name)
+                ax.bar_label(bar,labels=['F' if pf else '' for pf in cfailed_planners], color=colours[colour_i])
                 m += 1.0
 
-            ax.set_ylim(0.0, 100)
+            ax.set_ylim(0, 100)
             ax.legend()
             ax.tick_params(axis='y', labelsize=10)
             ax.tick_params(axis='x', labelsize=10)
+            ax.set_xticks(x, collected.planner.to_numpy(), rotation=90)
             ax.set_ylabel(f"{metric.replace('_', ' ').title()} (%)", fontsize=12)
             #ax.set_xlabel("Motion planning algorithm", fontsize=12)
             plt.show()
-        else: # box-plot
-            # Heavy inspiration, picked from answers here https://stackoverflow.com/questions/16592222/how-to-create-grouped-boxplotsa
+        else: # Uses a box-plot for all other data
+            # This methodology was inspired from the answers here https://stackoverflow.com/questions/16592222/how-to-create-grouped-boxplot
             fig, ax = plt.subplots()
-            x = np.arange(len(collected.planner)) * 1.5 # TODO: Get the multiplier from the length
-            box_spacing = 0.1
-            width = 0.5
+            x = np.arange(len(collected.planner))
             m = (1.0 - len(collected.benchmark))/2.0
-            colours = ["red", "blue", "green", "cyan", "teal", "orange"] # TODO: Autogenerate these? Colour names? Or hex-values?
+            width = 1/(len(collected.benchmark) + 0.25)
+            no_of_planners = len(collected.planner.to_numpy())
 
-            mark_locations = []
             for colour_i, benchmark in enumerate(collected.values()):
                 offset = width * m
                 results = []
-                for i, planner in enumerate(collected.planner.to_numpy()):
+
+                for i, planner in enumerate(collected.planner):
                     result = benchmark.sel(metric=metric, planner=planner)
                     if int(result.count()) != runs:
-                        mark_locations.append(i)
+                        result = np.nan # Here, the strategy is to just not plot it
                     results.append(result)
 
-                boxplot = ax.boxplot(results, positions=x + offset, widths=width*(1.0 - box_spacing), sym='+', vert=True,
-                                     patch_artist=True, labels=['']*len(collected.planner.to_numpy()))
-
-                # Colouring
-                # TODO: How to get the outliers the same colour, from the same palette?
-                for element in ["boxes", "whiskers", "fliers", "means", "medians", "caps"]:
+                boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
+                                     flierprops=dict(markeredgecolor=colours[colour_i]), patch_artist=True, labels=['']*no_of_planners)
+                # Colouring the rest of the boxplot
+                for element in boxplot.keys():
                     plt.setp(boxplot[element], color=colours[colour_i])
-                plt.setp(boxplot['boxes'], facecolor="white")
+                #plt.setp(boxplot["whiskers"], linestyle="--")
+                plt.setp(boxplot["boxes"], facecolor="white")
 
                 # Enable the legend, using a bar plot for a more consistent legend look
                 ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=benchmark.name)
@@ -164,13 +173,13 @@ if __name__ == "__main__":
 
             ax.legend()
             ax.set_xticks(x, collected.planner.to_numpy(), rotation=90)
-            for i in mark_locations:
-                plt.setp(ax.get_xticklabels()[i], color='red')
             ax.tick_params(axis='y', labelsize=10)
             ax.tick_params(axis='x', labelsize=10)
             ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=12)
             plt.show()
 
-
+        # TODO: Save the results of each benchmark into a PDF file with the name of the experiment on it (experiment+scene_name), instead of just displaying them
+        
     IPython.embed()
+
 
