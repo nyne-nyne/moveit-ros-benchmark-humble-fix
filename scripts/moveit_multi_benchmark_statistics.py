@@ -44,6 +44,13 @@ if __name__ == "__main__":
                         help="Colourmap to use for the plots. Defaults to 'Set1.'")
     args = parser.parse_args()
 
+
+    if not os.path.isdir(args.dir):
+        print(f"Creating new directory {args.dir}...")
+        os.mkdir(args.dir)
+
+    
+    # Pair up all the corresponding experiments, across the benchmarks
     dirs = []
     for benchmark_result in args.results:
             if os.path.isdir(benchmark_result):
