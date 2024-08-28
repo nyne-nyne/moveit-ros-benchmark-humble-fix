@@ -165,7 +165,7 @@ if __name__ == "__main__":
                         cfailed_planners = [False]*collected.planner.size # This is for indicated that a planner failed; for disambiguation from data that's just 0
 
                         for i, planner in enumerate(collected.planner): # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
-                            result = benchmark.sel(planner=planner, metric=metric).mean(dim='run') * 100
+                            result = benchmark.sel(planner=planner, metric=metric).mean(dim='run', skipna=False) * 100
                             if result.isnull():
                                 cfailed_planners[i] = True
                                 result = 0
