@@ -107,7 +107,8 @@ if __name__ == "__main__":
 
     # All the data across the same experiment into a dataset
     # This is fine :) since it's references. Just using it for the dimension alignment
-    # when there are more/less planners involved.
+    # when there are more/less planners involved. And, allows for playing around with
+    # it easier if using the interactive shell argument
     collected = xr.Dataset(benchmarks,
                             coords={"metric": list(metrics.keys()),
                                     "run": range(runs),
@@ -121,7 +122,10 @@ if __name__ == "__main__":
         colours = colormaps["Set1"].colors
 
     for metric, data_type in metrics.items():
-        if data_type == "BOOLEAN": # bar-graph
+        if data_type == "BOOLEAN": # Plots the data in a bar-graph
+            # Yes xarray has methods for this, but it doesn't have anything for
+            # box-plots (as of commenting time). This was done in order to keep stuff consistent,
+            # and for more control over the plotting
             fig, ax = plt.subplots()
             ax.grid(axis='y', linestyle="--", markerfacecolor="xkcd:light blue grey")
             x = np.arange(len(collected.planner))
