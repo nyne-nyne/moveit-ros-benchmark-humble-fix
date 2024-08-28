@@ -115,12 +115,11 @@ if __name__ == "__main__":
             x = np.arange(len(collected.planner))
             m = (1.0 - len(collected.benchmark))/2.0
             width = 1.0/(len(collected.benchmark) + 0.25)
-            no_of_planners = len(collected.planner.to_numpy())
-            
+                        
             for colour_i, benchmark in enumerate(collected.values()):
                 results = []
                 offset = width * m
-                cfailed_planners = [False]*no_of_planners # This is for indicated that a planner failed; for disambiguation from data that's just 0
+                cfailed_planners = [False]*collected.planner.size # This is for indicated that a planner failed; for disambiguation from data that's just 0
 
                 for i, planner in enumerate(collected.planner): # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
                     result = benchmark.sel(planner=planner, metric=metric).mean(dim='run') * 100
@@ -137,7 +136,7 @@ if __name__ == "__main__":
             ax.legend()
             ax.tick_params(axis='y', labelsize=10)
             ax.tick_params(axis='x', labelsize=10)
-            ax.set_xticks(x, collected.planner.to_numpy(), rotation=90)
+            ax.set_xticks(x, collected.planner.data, rotation=90)
             ax.set_ylabel(f"{metric.replace('_', ' ').title()} (%)", fontsize=12)
             #ax.set_xlabel("Motion planning algorithm", fontsize=12)
             plt.show()
@@ -147,7 +146,6 @@ if __name__ == "__main__":
             x = np.arange(len(collected.planner))
             m = (1.0 - len(collected.benchmark))/2.0
             width = 1/(len(collected.benchmark) + 0.25)
-            no_of_planners = len(collected.planner.to_numpy())
 
             for colour_i, benchmark in enumerate(collected.values()):
                 offset = width * m
@@ -160,7 +158,7 @@ if __name__ == "__main__":
                     results.append(result)
 
                 boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
-                                     flierprops=dict(markeredgecolor=colours[colour_i]), patch_artist=True, labels=['']*no_of_planners)
+                                     flierprops=dict(markeredgecolor=colours[colour_i]), patch_artist=True, labels=['']*collected.planner.size)
                 # Colouring the rest of the boxplot
                 for element in boxplot.keys():
                     plt.setp(boxplot[element], color=colours[colour_i])
@@ -172,7 +170,7 @@ if __name__ == "__main__":
                 m += 1.0
 
             ax.legend()
-            ax.set_xticks(x, collected.planner.to_numpy(), rotation=90)
+            ax.set_xticks(x, collected.planner.data, rotation=90)
             ax.tick_params(axis='y', labelsize=10)
             ax.tick_params(axis='x', labelsize=10)
             ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=12)
