@@ -132,8 +132,7 @@ if __name__ == "__main__":
                                                    "metric": list(metrics.keys()),
                                                    "run": range(runs)}, name=bm_name)
     collected = xr.Dataset(benchmarks,
-                           coords={"benchmark": list(benchmarks.keys()),
-                                   "experiment": experiment_names,
+                           coords={"experiment": experiment_names,
                                    "metric": list(metrics.keys()),
                                    "run": range(runs)})
     # It's plotting time
@@ -160,21 +159,17 @@ if __name__ == "__main__":
                     fig, ax = plt.subplots(tight_layout=True)
                     ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
                     x = np.arange(collected.planner.size)
-                    m = (1.0 - collected.benchmark.size)/2.0
-                    width = 1.0/(collected.benchmark.size + 0.25)
+                    m = (1.0 - len(benchmarks))/2.0
+                    width = 1.0/(len(benchmarks) + 0.25)
 
-                    for colour_i, benchmark in enumerate(collected.benchmark):
-                        results = []
+                    for colour_i, benchmark in enumerate(benchmarks.keys()):
                         offset = width * m
-
-                        for planner in collected.planner: # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
-                            results.append(collected[str(benchmark.data)].sel(experiment=experiment_name, planner=planner, metric=metric).mean(dim='run', skipna=True) * 100)
-
-                        ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=str(benchmark.data))
+                        results = [collected[benchmark].sel(experiment=experiment_name, planner=planner, metric=metric).mean(dim='run', skipna=True) * 100 for planner in collected.planner]
+                        ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=benchmark)
                         m += 1.0
 
                     ax.set_ylim(0, 100)
-                    ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=collected.benchmark.size)
+                    ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=len(benchmarks))
                     ax.tick_params(axis='y', labelsize=6)
                     ax.tick_params(axis='x', labelsize=6)
                     ax.set_xticks(x, collected.planner.data, rotation=80)
@@ -183,23 +178,19 @@ if __name__ == "__main__":
                     pdf.savefig()
                     plt.close()
                 else: # Uses a box-plot for all other data
-                    pass
                     # This methodology was inspired from the answers here https://stackoverflow.com/questions/16592222/how-to-create-grouped-boxplot
                     fig, ax = plt.subplots(tight_layout=True)
                     ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
                     x = np.arange(collected.planner.size)
-                    m = (1.0 - collected.benchmark.size)/2.0
-                    width = 1/(collected.benchmark.size + 0.25)
+                    m = (1.0 - len(benchmarks))/2.0
+                    width = 1/(len(benchmarks) + 0.25)
 
-                    for colour_i, benchmark in enumerate(collected.benchmark):
+                    for colour_i, benchmark in enumerate(benchmarks.keys()):
                         offset = width * m
-                        results = []
-
-                        for planner in collected.planner:
-                            results.append(collected[str(benchmark.data)].sel(experiment=experiment_name, metric=metric, planner=planner))
+                        results = [collected[benchmark].sel(experiment=experiment_name, metric=metric, planner=planner) for planner in collected.planner]
 
                         boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
-                                             flierprops=dict(markeredgewidth=0.5, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
+                                             flierprops=dict(markeredgewidth=0.5, markersize=4, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
                         # Colouring the rest of the boxplot
                         for element in boxplot.keys():
                             plt.setp(boxplot[element], color=colours[colour_i % len(colours)])
@@ -208,22 +199,83 @@ if __name__ == "__main__":
                         plt.setp(boxplot["boxes"], facecolor="white")
 
                         # Enable the legend, using a bar plot for a more consistent legend look
-                        # TODO: Another way to do them with handles? https://matplotlib.org/stable/users/explain/axes/legend_guide.html
-                        ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=str(benchmark.data))
+                        # TODO: Another way to do these with handles? https://matplotlib.org/stable/users/explain/axes/legend_guide.HTML
+                        ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=benchmark)
                         m += 1.0
 
-                    ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=collected.benchmark.size)
+                    ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=len(benchmarks))
                     ax.set_xticks(x, collected.planner.data, rotation=80)
                     ax.tick_params(axis='y', labelsize=6)
                     ax.tick_params(axis='x', labelsize=6)
                     ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=8)
                     pdf.savefig()
                     plt.close()
-
-    # TODO: all the data, aggregated. How can I do that? I want /all/ the data, over all benchmarks!
     
+    # A plot with the data across all experiments
+    print("Plotting data aggregate data")
+    with PdfPages(os.path.join(args.dir, "aggregate.pdf")) as pdf:
+        for metric, data_type in metrics.items():
+            if metric in args.blacklist:
+                continue
 
-    
+            if data_type == "BOOLEAN":
+                fig, ax = plt.subplots(tight_layout=True)
+                ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
+                x = np.arange(collected.planner.size)
+                m = (1.0 - len(benchmarks))/2.0
+                width = 1.0/(len(benchmarks) + 0.25)
+
+                for colour_i, benchmark in enumerate(benchmarks.keys()):
+                    offset = width * m
+                    results = [collected[benchmark].sel(planner=planner, metric=metric).mean(dim=["experiment", "run"], skipna=True) * 100 for planner in collected.planner]
+                    ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=benchmark)
+                    m += 1.0
+
+                ax.set_ylim(0, 100)
+                ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=len(benchmarks))
+                ax.tick_params(axis='y', labelsize=6)
+                ax.tick_params(axis='x', labelsize=6)
+                ax.set_xticks(x, collected.planner.data, rotation=80)
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()} (%)", fontsize=8)
+                #ax.set_xlabel("Motion planning algorithm", fontsize=12)
+                pdf.savefig()
+                plt.close()
+
+            else:
+                fig, ax = plt.subplots(tight_layout=True)
+                ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
+                x = np.arange(collected.planner.size)
+                m = (1.0 - len(benchmarks))/2.0
+                width = 1/(len(benchmarks) + 0.25)
+
+                for colour_i, benchmark in enumerate(benchmarks.keys()):
+                    offset = width * m
+                    # https://docs.xarray.dev/en/v0.16.1/generated/xarray.DataArray.values.html, the latest doc at
+                    # https://docs.xarray.dev/en/stable/generated/xarray.DataArray.values.html#xarray.DataArray.values  says that
+                    # this would be a view over the data.
+                    results = [collected[benchmark].sel(planner=planner, metric=metric).values.flatten() for planner in collected.planner]
+                    boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
+                                         flierprops=dict(markeredgewidth=0.5, markersize=4, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
+                    # Colouring the rest of the boxplot
+                    for element in boxplot.keys():
+                        plt.setp(boxplot[element], color=colours[colour_i % len(colours)])
+                        plt.setp(boxplot[element], linewidth=0.6)
+                    #plt.setp(boxplot["whiskers"], linestyle="--")
+                    plt.setp(boxplot["boxes"], facecolor="white")
+
+                    # Enable the legend, using a bar plot for a more consistent legend look
+                    # TODO: Another way to do these with handles? https://matplotlib.org/stable/users/explain/axes/legend_guide.HTML
+                    ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=benchmark)
+                    m += 1.0
+
+                ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=len(benchmarks))
+                ax.set_xticks(x, collected.planner.data, rotation=80)
+                ax.tick_params(axis='y', labelsize=6)
+                ax.tick_params(axis='x', labelsize=6)
+                ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=8)
+                pdf.savefig()
+                plt.close()
+            
     if args.ishell:
-        print(f"Starting shell for data collect for experiment {exp_name} using scene {scene_name}")
+        print(f"Starting IPython interactive shell")
         IPython.embed()
