@@ -50,31 +50,29 @@ if __name__ == "__main__":
     if not os.path.isdir(args.dir):
         print(f"Creating new directory {args.dir}...")
         os.mkdir(args.dir)
+
+    # TODO: Refactor this; after figuring out a better way of doing this    
+    benchmarks = dict()
+    planner_names = []
+    experiment_names = []
+    metrics = dict()
+    runs = -1
     
-    # Pair up all the corresponding experiments, across the benchmarks
-    dirs = []
     for benchmark_result in args.results:
-            if os.path.isdir(benchmark_result):
-                dirs.append(sorted([os.path.join(benchmark_result, f) for f in os.listdir(benchmark_result) if f.endswith(".log")]))
-            else:
-                print(f"{benchmark_result} is not a directory. Skipping...", file=sys.stderr)                    
+        if not os.path.isdir(benchmark_result):
+            print(f"{benchmark_result} is not a directory. Skipping...", file=sys.stderr)
+            continue
 
-    for experiment_group in zip(*dirs):
-        # TODO: Turn stuff like this into a class, and just use self for all the class-level stuff?
-        # TODO: Is this slower than the single-benchmark script?
-        metrics = dict()
-        benchmarks = dict()
-        runs = -1
-        file_name = "" # experiment_name + scene_name + extension (.pdf)
-        exp_name = ""
-        scene_name = ""
-
-        for result_file in experiment_group:
-            bm_name = ""
-            with open(result_file, "r") as f:
-                print("Processing result " + str(result_file), file=sys.stderr)
-                planner_results = dict()
-
+        bm_name = ""
+        experiment_results = dict()
+    
+        for experiment_file in [os.path.join(benchmark_result, f) for f in os.listdir(benchmark_result)]:
+            planner_results = dict()
+            exp_name = "" # exp_name + scene_name, for uniqueness
+            
+            with open(experiment_file, "r") as f:
+                print("Processing result " + str(experiment_file), file=sys.stderr)
+            
                 skip_line(f)
                 exp_name = f.readline().split()[-1]
                 skip_lines(6, f)
@@ -84,7 +82,7 @@ if __name__ == "__main__":
                 bm_name = f"{planning_time}s{attempts}a" # TODO: Add the robot name as well? If you've got multiple robots, raise your hand!
                 skip_line(f)
                 scene_name = f.readline().split()[-1]
-                file_name = f"{exp_name}_{scene_name}"
+                exp_name = f"{exp_name}_{scene_name}"
                 skip_lines(5, f)
 
                 runs = max(int(f.readline().split()[0]), runs)
@@ -121,32 +119,36 @@ if __name__ == "__main__":
                     data.close()
                     skip_line(f)
 
-                benchmarks[bm_name] = xr.DataArray(data=list(planner_results.values()), # TODO: Add some attributes as well, from the benchmark file!
-                                                   dims=["planner", "run", "metric"],
-                                                   coords={"planner": list(planner_results.keys()),
-                                                           "metric": list(metrics.keys()),
-                                                           "run": range(runs)}, name=bm_name)
+            planner_names = list(planner_results.keys())
+            metric_names = list(metrics.keys())
+            
+            experiment_results[exp_name] = xr.DataArray(data=list(planner_results.values()))
 
-        # All the data across the same experiment into a dataset
-        # This is fine :) since it's references. Just using it for the dimension alignment
-        # when there are more/less planners involved. And, allows for playing around with
-        # it easier if using the interactive shell argument
-        # TODO: put this stuff in a m e g a dataset? With allllll the data?
-        collected = xr.Dataset(benchmarks,
-                                coords={"metric": list(metrics.keys()),
-                                        "run": range(runs),
-                                        "benchmark": list(benchmarks.keys())})
+        experiment_names = list(experiment_results.keys())
+        benchmarks[bm_name] = xr.DataArray(data=list(experiment_results.values()),
+                                           dims=["experiment", "planner", "run", "metric"],
+                                           coords={"experiment": experiment_names,
+                                                   "planner": planner_names,
+                                                   "metric": list(metrics.keys()),
+                                                   "run": range(runs)}, name=bm_name)
+    collected = xr.Dataset(benchmarks,
+                           coords={"benchmark": list(benchmarks.keys()),
+                                   "experiment": experiment_names,
+                                   "metric": list(metrics.keys()),
+                                   "run": range(runs)})
+    # It's plotting time
+    try: 
+        colours = colormaps[args.colours].colors
+    except KeyError as e:
+        print(f"Unknown colourmap name {args.map}. See https://matplotlib.org/stable/users/explain/colors/colormaps.html#choosing-colormaps-in-matplotlib. Defaulting to 'Set1'", file=sys.stderr)
+        colours = colormaps["Set1"].colors
 
-        # It's plotting time.
-        with PdfPages(os.path.join(args.dir, file_name + ".pdf")) as pdf:
-            try: 
-                colours = colormaps[args.colours].colors
-            except KeyError as e:
-                print(f"Unknown colourmap name {args.map}. See https://matplotlib.org/stable/users/explain/colors/colormaps.html#choosing-colormaps-in-matplotlib. Defaulting to 'Set1'", file=sys.stderr)
-                colours = colormaps["Set1"].colors
-
+    for experiment_name in collected.experiment:
+        print(f"Plotting data for {str(experiment_name.data)}")
+        with PdfPages(os.path.join(args.dir, str(experiment_name.data) + ".pdf")) as pdf:
             if args.blacklist:
                 print(f"Skipping plotting of the following metric(s): {', '.join(args.blacklist[:-1])}", file=sys.stderr)
+
             for metric, data_type in metrics.items():
                 if metric in args.blacklist:
                     continue
@@ -157,19 +159,18 @@ if __name__ == "__main__":
                     # and for more control over the plotting
                     fig, ax = plt.subplots(tight_layout=True)
                     ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
-                    x = np.arange(len(collected.planner))
-                    m = (1.0 - len(collected.benchmark))/2.0
-                    width = 1.0/(len(collected.benchmark) + 0.25)
+                    x = np.arange(collected.planner.size)
+                    m = (1.0 - collected.benchmark.size)/2.0
+                    width = 1.0/(collected.benchmark.size + 0.25)
 
-                    for colour_i, benchmark in enumerate(collected.values()):
+                    for colour_i, benchmark in enumerate(collected.benchmark):
                         results = []
                         offset = width * m
-                        cfailed_planners = [False]*collected.planner.size # This is for indicated that a planner failed; for disambiguation from data that's just 0
 
                         for planner in collected.planner: # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
-                            results.append(benchmark.sel(planner=planner, metric=metric).mean(dim='run', skipna=True) * 100)
+                            results.append(collected[str(benchmark.data)].sel(experiment=experiment_name, planner=planner, metric=metric).mean(dim='run', skipna=True) * 100)
 
-                        ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=benchmark.name)
+                        ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=str(benchmark.data))
                         m += 1.0
 
                     ax.set_ylim(0, 100)
@@ -182,19 +183,20 @@ if __name__ == "__main__":
                     pdf.savefig()
                     plt.close()
                 else: # Uses a box-plot for all other data
+                    pass
                     # This methodology was inspired from the answers here https://stackoverflow.com/questions/16592222/how-to-create-grouped-boxplot
                     fig, ax = plt.subplots(tight_layout=True)
                     ax.grid(linestyle="--", markerfacecolor="xkcd:light blue grey", alpha=0.4, linewidth=0.6)
-                    x = np.arange(len(collected.planner))
-                    m = (1.0 - len(collected.benchmark))/2.0
-                    width = 1/(len(collected.benchmark) + 0.25)
+                    x = np.arange(collected.planner.size)
+                    m = (1.0 - collected.benchmark.size)/2.0
+                    width = 1/(collected.benchmark.size + 0.25)
 
-                    for colour_i, benchmark in enumerate(collected.values()):
+                    for colour_i, benchmark in enumerate(collected.benchmark):
                         offset = width * m
                         results = []
 
                         for planner in collected.planner:
-                            results.append(benchmark.sel(metric=metric, planner=planner))
+                            results.append(collected[str(benchmark.data)].sel(experiment=experiment_name, metric=metric, planner=planner))
 
                         boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
                                              flierprops=dict(markeredgewidth=0.5, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
@@ -207,7 +209,7 @@ if __name__ == "__main__":
 
                         # Enable the legend, using a bar plot for a more consistent legend look
                         # TODO: Another way to do them with handles? https://matplotlib.org/stable/users/explain/axes/legend_guide.html
-                        ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=benchmark.name)
+                        ax.bar(x + offset, [np.nan], 0, color=colours[colour_i], label=str(benchmark.data))
                         m += 1.0
 
                     ax.legend(bbox_to_anchor=(0.0, 1.0), loc='lower left', ncol=collected.benchmark.size)
@@ -218,6 +220,10 @@ if __name__ == "__main__":
                     pdf.savefig()
                     plt.close()
 
-        if args.ishell:
-            print(f"Starting shell for data collect for experiment {exp_name} using scene {scene_name}")
-            IPython.embed()
+    # TODO: all the data, aggregated. How can I do that? I want /all/ the data, over all benchmarks!
+    
+
+    
+    if args.ishell:
+        print(f"Starting shell for data collect for experiment {exp_name} using scene {scene_name}")
+        IPython.embed()
