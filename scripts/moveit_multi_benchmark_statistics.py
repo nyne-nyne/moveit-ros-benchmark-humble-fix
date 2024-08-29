@@ -42,13 +42,14 @@ if __name__ == "__main__":
                         help="Colourmap to use for the plots. Defaults to 'Set1'. Refer to matplotlib's colormap documentation for more details.")
     parser.add_argument("--dir", type=Path, required=False, default=os.getcwd(),
                         help="Colourmap to use for the plots. Defaults to 'Set1.'")
-    args = parser.parse_args()
+    parser.add_argument("--blacklist", nargs='+',required=False, default=None,
+                        help="List of metrics to not plot. Default behaviour is to plot all metrics.")
 
+    args = parser.parse_args()
 
     if not os.path.isdir(args.dir):
         print(f"Creating new directory {args.dir}...")
         os.mkdir(args.dir)
-
     
     # Pair up all the corresponding experiments, across the benchmarks
     dirs = []
@@ -144,7 +145,12 @@ if __name__ == "__main__":
                 print(f"Unknown colourmap name {args.map}. See https://matplotlib.org/stable/users/explain/colors/colormaps.html#choosing-colormaps-in-matplotlib. Defaulting to 'Set1'", file=sys.stderr)
                 colours = colormaps["Set1"].colors
 
+            if args.blacklist:
+                print(f"Skipping plotting of the following metric(s): {', '.join(args.blacklist[:-1])}", file=sys.stderr)
             for metric, data_type in metrics.items():
+                if metric in args.blacklist:
+                    continue
+
                 if data_type == "BOOLEAN": # Plots the data in a bar-graph
                     # Yes xarray has methods for this, but it doesn't have anything for
                     # box-plots (as of commenting time). This was done in order to keep stuff consistent,
