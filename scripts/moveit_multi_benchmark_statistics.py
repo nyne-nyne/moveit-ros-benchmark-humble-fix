@@ -110,14 +110,10 @@ if __name__ == "__main__":
                     # Get the run data, for our planner
                     data = io.StringIO("".join(itertools.islice(f, runs)))
 
-                    # TODO: Best values to fill in for Nan's? The mean? 0's? Would it affect the box-plots?
-                    #       Typically, boxplots will not plot if I use a np.array with a some np.nan's.
-                    #       But, they when the type is float, but it seems to work if the type is object, which is
-                    #       which is how xarray is storing the values...so it seems to work.
-                    #       https://docs.xarray.dev/en/latest/user-guide/plotting.html#missing-values
+                    # In the current file format, any NaN's are the result of a failed solve.
                     try:
                         df = pd.read_table(data, sep=";\s?", header=None).drop(columns=12) # type: ignore
-                    except KeyError as e: # this happens for planner failure, less than total metrics are given
+                    except KeyError as e: # This is for when the planner is unable to solve 100% of the time. Less than total metrics are given.
                         df = pd.DataFrame({row_id: np.repeat(np.NaN, runs) for row_id in range(len(metrics))})
 
                     planner_results[planner_name] = df;
@@ -164,15 +160,10 @@ if __name__ == "__main__":
                         offset = width * m
                         cfailed_planners = [False]*collected.planner.size # This is for indicated that a planner failed; for disambiguation from data that's just 0
 
-                        for i, planner in enumerate(collected.planner): # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
-                            result = benchmark.sel(planner=planner, metric=metric).mean(dim='run', skipna=False) * 100
-                            if result.isnull():
-                                cfailed_planners[i] = True
-                                result = 0
-                            results.append(result)
+                        for planner in collected.planner: # Multiple groupby selection is not available yet, Ubuntu 22.04 :(
+                            results.append(benchmark.sel(planner=planner, metric=metric).mean(dim='run', skipna=True) * 100)
 
-                        bar = ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=benchmark.name)
-                        ax.bar_label(bar,labels=['!' if pf else '' for pf in cfailed_planners], color=colours[colour_i % len(colours)])
+                        ax.bar(x + offset, results, width, color=colours[colour_i % len(colours)], label=benchmark.name)
                         m += 1.0
 
                     ax.set_ylim(0, 100)
@@ -196,11 +187,8 @@ if __name__ == "__main__":
                         offset = width * m
                         results = []
 
-                        for i, planner in enumerate(collected.planner):
-                            result = benchmark.sel(metric=metric, planner=planner)
-                            if int(result.count()) != runs:
-                                result = np.nan # Here, the strategy is to just not plot it
-                            results.append(result)
+                        for planner in collected.planner:
+                            results.append(benchmark.sel(metric=metric, planner=planner))
 
                         boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
                                              flierprops=dict(markeredgewidth=0.5, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
