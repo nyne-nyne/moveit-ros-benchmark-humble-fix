@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(args.dir):
         print(f"Creating new directory {args.dir}...")
-        os.mkdir(args.dir)
+        os.makedirs(args.dir)
 
     # TODO: Refactor this; after figuring out a better way of doing this    
     benchmarks = dict()
@@ -143,6 +143,10 @@ if __name__ == "__main__":
         colours = colormaps["Set1"].colors
 
     for experiment_name in collected.experiment:
+        save_dir = os.path.join(args.dir, f"{str(experiment_name.data)}")
+        if not os.path.isdir(save_dir):
+            os.makedirs(save_dir)
+
         print(f"Plotting data for {str(experiment_name.data)}")
         with PdfPages(os.path.join(args.dir, str(experiment_name.data) + ".pdf")) as pdf:
             if args.blacklist:
@@ -175,6 +179,7 @@ if __name__ == "__main__":
                     ax.set_xticks(x, collected.planner.data, rotation=80)
                     ax.set_ylabel(f"{metric.replace('_', ' ').title()} (%)", fontsize=8)
                     #ax.set_xlabel("Motion planning algorithm", fontsize=12)
+                    plt.savefig(os.path.join(save_dir, f"{metric}.png"), dpi=300)
                     pdf.savefig()
                     plt.close()
                 else: # Uses a box-plot for all other data
@@ -208,11 +213,16 @@ if __name__ == "__main__":
                     ax.tick_params(axis='y', labelsize=6)
                     ax.tick_params(axis='x', labelsize=6)
                     ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=8)
+                    plt.savefig(os.path.join(save_dir, f"{metric}.png"), dpi=300)
                     pdf.savefig()
                     plt.close()
     
     # A plot with the data across all experiments
     print("Plotting data aggregate data")
+    save_dir =  os.path.join(args.dir, "aggregate")
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+    
     with PdfPages(os.path.join(args.dir, "aggregate.pdf")) as pdf:
         for metric, data_type in metrics.items():
             if metric in args.blacklist:
@@ -238,6 +248,7 @@ if __name__ == "__main__":
                 ax.set_xticks(x, collected.planner.data, rotation=80)
                 ax.set_ylabel(f"{metric.replace('_', ' ').title()} (%)", fontsize=8)
                 #ax.set_xlabel("Motion planning algorithm", fontsize=12)
+                plt.savefig(os.path.join(save_dir, f"{metric}.png"), dpi=300)
                 pdf.savefig()
                 plt.close()
 
@@ -273,6 +284,7 @@ if __name__ == "__main__":
                 ax.tick_params(axis='y', labelsize=6)
                 ax.tick_params(axis='x', labelsize=6)
                 ax.set_ylabel(f"{metric.replace('_', ' ').title()}", fontsize=8)
+                plt.savefig(os.path.join(save_dir, f"{metric}.png"), dpi=300)
                 pdf.savefig()
                 plt.close()
             
