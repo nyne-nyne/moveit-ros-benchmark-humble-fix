@@ -192,8 +192,11 @@ if __name__ == "__main__":
 
                     for colour_i, benchmark in enumerate(benchmarks.keys()):
                         offset = width * m
-                        results = [collected[benchmark].sel(experiment=experiment_name, metric=metric, planner=planner) for planner in collected.planner]
-
+                        results = []
+                        for planner in collected.planner:
+                            result = collected[benchmark].sel(experiment=experiment_name, metric=metric, planner=planner).astype(float)
+                            filtered_result = result[~np.isnan(result)]
+                            results.append(filtered_result)
                         boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
                                              flierprops=dict(markeredgewidth=0.5, markersize=4, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
                         # Colouring the rest of the boxplot
@@ -264,7 +267,11 @@ if __name__ == "__main__":
                     # https://docs.xarray.dev/en/v0.16.1/generated/xarray.DataArray.values.html, the latest doc at
                     # https://docs.xarray.dev/en/stable/generated/xarray.DataArray.values.html#xarray.DataArray.values  says that
                     # this would be a view over the data.
-                    results = [collected[benchmark].sel(planner=planner, metric=metric).values.flatten() for planner in collected.planner]
+                    results = []
+                    for planner in collected.planner:
+                        result = collected[benchmark].sel(planner=planner, metric=metric).values.astype(float).flatten()
+                        filtered_result = result[~np.isnan(result)]
+                        results.append(filtered_result)
                     boxplot = ax.boxplot(results, positions=x + offset, widths=width * 0.85, sym='+', vert=True,
                                          flierprops=dict(markeredgewidth=0.5, markersize=4, markeredgecolor=colours[colour_i % len(colours)]), patch_artist=True, labels=['']*collected.planner.size)
                     # Colouring the rest of the boxplot
